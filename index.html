@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulação de Curto, Médio e Longo Prazo — IS-LM-BP, DA-OA e Solow</title>
+  <style>
+    :root {
+      --bg: #0f1729; --panel: #141e32; --panel2: #0a1020; --border: #1e2d4a;
+      --text: #e8eff8; --muted: #8ba2c4; --dim: #5a7399;
+      --is: #f5a623; --lm: #2ecaac; --bp: #a78bfa; --ad: #4a9eff;
+      --sras: #f87171; --lras: #fcd34d; --pc: #34d399; --shock: #f472b6;
+      --k: #38bdf8; --gold: #fbbf24; --ok: #22c55e; --warn: #fb7185;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text);
+      background: radial-gradient(circle at top left, #1b2a4a 0, var(--bg) 36%, #070b14 100%);
+      font-family: Segoe UI, Arial, Helvetica, sans-serif;
+    }
+    header {
+      padding: 20px 28px 12px; border-bottom: 1px solid var(--border);
+      background: rgba(10, 16, 32, 0.82); position: sticky; top: 0; z-index: 20;
+      backdrop-filter: blur(10px);
+    }
+    h1 { margin: 0 0 6px; font-size: 24px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+    nav.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    nav.tabs button {
+      width: auto; background: var(--panel2); color: var(--muted);
+      border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    nav.tabs button.active { background: var(--ad); color: white; border-color: var(--ad); }
+    .layout { display: grid; grid-template-columns: 360px 1fr; gap: 18px; padding: 18px; max-width: 1620px; margin: 0 auto; }
+    .layout.solo { grid-template-columns: 1fr; }
+    aside {
+      background: rgba(20, 30, 50, 0.96); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; align-self: start; position: sticky; top: 150px;
+      max-height: calc(100vh - 168px); overflow: auto;
+    }
+    main { min-width: 0; }
+    .tabpane { display: none; }
+    .tabpane.active { display: block; }
+    .section, .card {
+      background: rgba(20, 30, 50, 0.94); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; margin-bottom: 16px;
+    }
+    h2 { font-size: 18px; margin: 0 0 10px; }
+    h3 { font-size: 15px; margin: 0 0 8px; }
+    h4 { font-size: 13.5px; margin: 14px 0 6px; color: var(--muted); }
+    details { border-top: 1px solid var(--border); padding: 12px 0; }
+    details:first-of-type { border-top: 0; }
+    summary { cursor: pointer; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    label.control { display: grid; grid-template-columns: 1fr 86px; gap: 10px; align-items: center; margin: 10px 0 12px; }
+    .control small { display: block; color: var(--muted); font-size: 11px; line-height: 1.25; margin-bottom: 5px; }
+    .control input[type="range"] { width: 100%; accent-color: var(--ad); }
+    .control input[type="number"], select, input[type="text"] {
+      width: 100%; color: var(--text); background: var(--panel2);
+      border: 1px solid var(--border); border-radius: 6px; padding: 7px; font-size: 13px;
+    }
+    select { margin: 6px 0 10px; padding: 9px; }
+    button {
+      width: 100%; background: var(--ad); color: white; border: 0; border-radius: 6px;
+      padding: 10px 12px; font-weight: 700; cursor: pointer;
+    }
+    button.ghost { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+    .btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .hint {
+      border: 1px solid #2a416c; background: #0b1529; color: var(--muted);
+      border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; margin-bottom: 14px;
+    }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .cards.five { grid-template-columns: repeat(5, minmax(130px, 1fr)); }
+    .metric { background: rgba(10, 16, 32, 0.96); border: 1px solid var(--border); border-radius: 8px; padding: 13px; min-height: 92px; }
+    .metric span { display: block; color: var(--muted); font-size: 12px; line-height: 1.3; }
+    .metric strong { display: block; font-family: Consolas, monospace; font-size: 21px; margin-top: 7px; }
+    .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    svg { width: 100%; height: auto; display: block; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; vertical-align: top; }
+    th { color: var(--text); background: var(--panel2); }
+    td { color: #dbe7f6; }
+    .formula {
+      color: var(--ok); font-family: Consolas, "Cambria Math", serif; font-size: 14px;
+      background: var(--panel2); border: 1px solid var(--border); border-left: 3px solid var(--ok);
+      border-radius: 6px; padding: 9px 12px; margin: 8px 0; line-height: 1.6; overflow-x: auto;
+    }
+    .prose { color: #cfe0f4; line-height: 1.6; font-size: 14px; }
+    .prose p { margin: 8px 0; }
+    ul { padding-left: 18px; margin: 8px 0 0; color: var(--muted); line-height: 1.5; }
+    .pill { display: inline-block; color: var(--text); background: var(--panel2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 8px; font-size: 12px; margin-right: 6px; }
+    .tag { font-family: Consolas, monospace; color: var(--gold); }
+    .warnbox { border: 1px solid var(--warn); background: #2a0f18; color: #ffd9e0; border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.45; margin: 10px 0; }
+    .footer { color: var(--dim); font-size: 12px; line-height: 1.45; padding: 8px 2px 24px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .chips button { width: auto; background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 12px; padding: 7px 11px; border-radius: 999px; }
+    .chips button.hyper { border-color: var(--warn); color: #ffd9e0; }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: static; max-height: none; }
+      .cards, .cards.five, .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      header { position: static; }
+      .cards, .cards.five, .grid2 { grid-template-columns: 1fr; }
+      label.control { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Simulação de Curto, Médio e Longo Prazo</h1>
+    <p class="subtitle">IS-LM-BP e DA-OA (curto/médio) · Solow com controle ótimo e regras de ouro (longo) · Laboratório de choques com absurdos e hiperinflações históricas. Tudo offline, roda no navegador, sem instalar nada.</p>
+    <nav class="tabs" id="tabs">
+      <button data-tab="cm" class="active">Curto e Médio prazo</button>
+      <button data-tab="lp">Longo prazo — Solow</button>
+      <button data-tab="ch">Laboratório de choques</button>
+      <button data-tab="teoria">Teoria e deduções</button>
+    </nav>
+  </header>
+
+  <!-- ============ CURTO / MÉDIO ============ -->
+  <div class="tabpane active" id="pane-cm">
+    <div class="layout">
+      <aside>
+        <div class="hint"><strong>Curto prazo:</strong> preços fixos, o produto é determinado pela demanda (IS-LM-BP). <strong>Médio prazo:</strong> preços e expectativas se ajustam e o produto volta ao natural (DA-OA / Phillips). Mexa nos controles e veja a trajetória de ajuste no tempo.</div>
+        <h2>Controles</h2>
+        <label for="choqueCM"><strong>Choque do cenário</strong></label>
+        <select id="choqueCM"></select>
+        <button id="restaurarCM" class="ghost">Restaurar padrões</button>
+        <div id="controlesCM"></div>
+      </aside>
+      <main>
+        <section class="cards five" id="metricasCM"></section>
+        <section class="grid2">
+          <div class="card"><h2>IS-LM-BP (curto prazo)</h2><div id="gISLM"></div></div>
+          <div class="card"><h2>Demanda e Oferta Agregada</h2><div id="gOADA"></div></div>
+        </section>
+        <section class="grid2">
+          <div class="card"><h2>Ajuste no tempo: produto Y</h2><div id="gYt"></div></div>
+          <div class="card"><h2>Ajuste no tempo: inflação π e preços P</h2><div id="gPit"></div></div>
+        </section>
+        <section class="card">
+          <h2>Como ler os três horizontes</h2>
+          <ul id="leituraCM"></ul>
+        </section>
+        <section class="card">
+          <h2>Multiplicadores calculados</h2>
+          <table id="tabMult"></table>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ LONGO PRAZO — SOLOW ============ -->
+  <div class="tabpane" id="pane-lp">
+    <div class="layout">
+      <aside>
+        <div class="hint"><strong>Solow.</strong> No longo prazo o produto por trabalhador é limitado pela acumulação de capital e pela tecnologia. Ajuste poupança, tecnologia e demografia e veja a economia convergir ao estado estacionário. A <span class="tag">regra de ouro</span> marca a poupança que maximiza o consumo.</div>
+        <h2>Parâmetros de Solow</h2>
+        <div id="controlesSol"></div>
+        <button id="goldenBtn">Ajustar para a regra de ouro (s = α)</button>
+        <div style="height:8px"></div>
+        <button id="restaurarSol" class="ghost">Restaurar padrões</button>
+      </aside>
+      <main>
+        <section class="cards" id="metricasSol"></section>
+        <section class="grid2">
+          <div class="card"><h2>Diagrama de fase: investimento vs. depreciação</h2><div id="gSolFase"></div></div>
+          <div class="card"><h2>Convergência de k, y e c no tempo</h2><div id="gSolTempo"></div></div>
+        </section>
+        <section class="grid2">
+          <div class="card"><h2>Consumo de estado estacionário vs. taxa de poupança</h2><div id="gSolGolden"></div></div>
+          <div class="card"><h2>Níveis: produto por trabalhador (escala log)</h2><div id="gSolNiveis"></div></div>
+        </section>
+        <section class="card">
+          <h2>Leitura do estado estacionário</h2>
+          <ul id="leituraSol"></ul>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ LABORATÓRIO DE CHOQUES ============ -->
+  <div class="tabpane" id="pane-ch">
+    <div class="layout">
+      <aside>
+        <div class="hint"><strong>Liberdade total.</strong> Multiplique a base monetária por 5, 10, 100. Aplique choques a qualquer parâmetro. Ou dispare uma hiperinflação: escolha um episódio histórico ou invente o seu. O modelo de Cagan mostra o motivo pelo qual a coisa explode: quando todos esperam inflação, ninguém segura moeda, e isso realimenta a inflação.</div>
+        <h2>Choque monetário livre</h2>
+        <label class="control"><span><small>Multiplicador da base monetária M (× atual)</small>
+          <input type="range" id="Mmul" min="0.1" max="100" step="0.1" value="5"></span>
+          <input type="number" id="MmulN" min="0.1" max="1000" step="0.1" value="5"></label>
+        <div class="chips">
+          <button data-mmul="2">×2</button><button data-mmul="5">×5</button>
+          <button data-mmul="10">×10</button><button data-mmul="50">×50</button>
+          <button data-mmul="100">quintuplicar+ (×100)</button>
+        </div>
+        <h2>Motor de hiperinflação (Cagan)</h2>
+        <label class="control"><span><small>μ, crescimento mensal da moeda (% ao mês)</small>
+          <input type="range" id="mu" min="0" max="500" step="1" value="50"></span>
+          <input type="number" id="muN" min="0" max="100000" step="1" value="50"></label>
+        <label class="control"><span><small>aceleração: o governo imprime X% mais rápido a cada mês</small>
+          <input type="range" id="accel" min="0" max="100" step="1" value="15"></span>
+          <input type="number" id="accelN" min="0" max="500" step="1" value="15"></label>
+        <label class="control"><span><small>η, fuga da moeda (colapso dos saldos reais)</small>
+          <input type="range" id="eta" min="0.5" max="12" step="0.1" value="4"></span>
+          <input type="number" id="etaN" min="0.5" max="30" step="0.1" value="4"></label>
+        <label class="control"><span><small>meses simulados</small>
+          <input type="range" id="meses" min="6" max="60" step="1" value="24"></span>
+          <input type="number" id="mesesN" min="6" max="120" step="1" value="24"></label>
+        <h4>Episódios históricos (clique)</h4>
+        <div class="chips" id="hyperPresets"></div>
+        <button id="restaurarCh" class="ghost">Restaurar padrões</button>
+      </aside>
+      <main>
+        <section class="card">
+          <h2>Efeito de multiplicar a base monetária</h2>
+          <p class="prose" id="mtextCh"></p>
+          <div class="cards" id="metricasCh"></div>
+        </section>
+        <section class="card">
+          <h2>Trajetória da hiperinflação</h2>
+          <div id="hyperInfo" class="warnbox"></div>
+          <div class="grid2">
+            <div><h3>Inflação mensal (%)</h3><div id="gHiperPi"></div></div>
+            <div><h3>Nível de preços (índice, escala log)</h3><div id="gHiperP"></div></div>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Ranking das maiores hiperinflações da história</h2>
+          <table id="tabHiper"></table>
+          <p class="prose" style="margin-top:10px">Pico de inflação <em>mensal</em>. A coluna "preços dobram" mostra por que a moeda vira pó: em Budapeste, 1946, os preços dobravam a cada 15 horas.</p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ TEORIA ============ -->
+  <div class="tabpane" id="pane-teoria">
+    <div class="layout solo">
+      <main id="teoriaBody"></main>
+    </div>
+  </div>
+
+  <div class="footer" style="max-width:1620px;margin:0 auto;padding-left:18px">
+    Arquivo único HTML, offline. Copie a pasta para qualquer computador e abra <span class="tag">index.html</span>. Todos os cálculos rodam no navegador.
+  </div>
+
+  <script>
+  "use strict";
+  const C = {
+    text:"#E8EFF8", muted:"#8BA2C4", grid:"#1A2840", axis:"#3B4E6D",
+    IS:"#F5A623", LM:"#2ECAAC", BP:"#A78BFA", AD:"#4A9EFF", SRAS:"#F87171",
+    LRAS:"#FCD34D", PC:"#34D399", EQ:"#FFFFFF", shock:"#F472B6",
+    K:"#38BDF8", Y:"#4A9EFF", Cc:"#34D399", Inv:"#F5A623", gold:"#FBBF24", warn:"#FB7185"
+  };
+  const fmt = (x,n=3)=> Number.isFinite(x)? x.toFixed(n):"n/a";
+  const pct = (x,n=2)=> Number.isFinite(x)? (100*x).toFixed(n)+"%":"n/a";
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+  /* ---------- SVG helpers (compartilhados) ---------- */
+  function mapPoint(x,y,xMin,xMax,yMin,yMax,W,H,pad){
+    const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+    return [pad.l+((x-xMin)/(xMax-xMin))*pw, pad.t+((yMax-y)/(yMax-yMin))*ph];
+  }
+  function pathXY(fn,xMin,xMax,yMin,yMax,W,H,pad,steps=240){
+    const pts=[];
+    for(let i=0;i<=steps;i++){
+      const x=xMin+(i/steps)*(xMax-xMin), y=fn(x);
+      if(Number.isFinite(y)&&y>=yMin-1e6&&y<=yMax+1e6){
+        const yy=clamp(y,yMin-0.5,yMax+0.5);
+        const [sx,sy]=mapPoint(x,yy,xMin,xMax,yMin,yMax,W,H,pad);
+        pts.push(`${pts.length?"L":"M"}${sx.toFixed(1)},${sy.toFixed(1)}`);
+      }
+    }
+    return pts.join(" ");
+  }
+  function axes(xTicks,yTicks,xMin,xMax,yMin,yMax,W,H,pad,xlabel,ylabel,yfmt){
+    yfmt=yfmt||(y=>fmt(y,y<1&&y>-1?2:0));
+    let out="";
+    xTicks.forEach(x=>{
+      const [sx]=mapPoint(x,yMin,xMin,xMax,yMin,yMax,W,H,pad);
+      out+=`<line x1="${sx}" y1="${pad.t}" x2="${sx}" y2="${H-pad.b}" stroke="${C.grid}" stroke-width="0.7"/>`;
+      out+=`<text x="${sx}" y="${H-pad.b+18}" text-anchor="middle" fill="${C.muted}" font-size="10" font-family="Consolas">${fmt(x,0)}</text>`;
+    });
+    yTicks.forEach(y=>{
+      const [,sy]=mapPoint(xMin,y,xMin,xMax,yMin,yMax,W,H,pad);
+      out+=`<line x1="${pad.l}" y1="${sy}" x2="${W-pad.r}" y2="${sy}" stroke="${C.grid}" stroke-width="0.7"/>`;
+      out+=`<text x="${pad.l-8}" y="${sy+4}" text-anchor="end" fill="${C.muted}" font-size="10" font-family="Consolas">${yfmt(y)}</text>`;
+    });
+    out+=`<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="${C.axis}"/>`;
+    out+=`<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H-pad.b}" stroke="${C.axis}"/>`;
+    out+=`<text x="${W/2}" y="${H-13}" text-anchor="middle" fill="${C.muted}" font-size="12">${xlabel}</text>`;
+    out+=`<text transform="translate(15 ${H/2}) rotate(-90)" text-anchor="middle" fill="${C.muted}" font-size="12">${ylabel}</text>`;
+    return out;
+  }
+  // Gráfico de séries temporais genérico. series: [{name,color,data:[y...]}], x = índice 0..n
+  function timeChart(series, opt){
+    const W=opt.W||540, H=opt.H||330, pad={t:24,r:16,b:44,l:56};
+    const n=Math.max(...series.map(s=>s.data.length))-1;
+    let vals=series.flatMap(s=>s.data).filter(Number.isFinite);
+    let yMin=opt.yMin!=null?opt.yMin:Math.min(...vals);
+    let yMax=opt.yMax!=null?opt.yMax:Math.max(...vals);
+    if(yMin===yMax){yMax+=1;yMin-=1;}
+    const log=opt.log;
+    const ty=v=>log?Math.log10(Math.max(v,1e-9)):v;
+    let lo=ty(yMin), hi=ty(yMax); if(lo===hi)hi=lo+1;
+    const xMin=0,xMax=n||1;
+    const xTicks=[]; const step=Math.max(1,Math.round(n/6)); for(let i=0;i<=n;i+=step)xTicks.push(i);
+    const yTicks=[]; for(let i=0;i<=5;i++)yTicks.push(lo+(hi-lo)*i/5);
+    const yfmt=v=>{ const real=log?Math.pow(10,v):v; return opt.pctY?pct(real,real<0.1?1:0): (log?(real>=1e6?real.toExponential(0):fmt(real,real<10?1:0)):fmt(real,Math.abs(real)<10?2:0)); };
+    let svg=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+    svg+=axes(xTicks,yTicks,xMin,xMax,lo,hi,W,H,pad,opt.xlabel||"período",opt.ylabel||"",v=>yfmt(v));
+    if(opt.markMedium!=null){
+      const [mx]=mapPoint(opt.markMedium,lo,xMin,xMax,lo,hi,W,H,pad);
+      svg+=`<line x1="${mx}" y1="${pad.t}" x2="${mx}" y2="${H-pad.b}" stroke="${C.shock}" stroke-opacity="0.5" stroke-dasharray="4 4"/>`;
+      svg+=`<text x="${mx+4}" y="${pad.t+12}" fill="${C.shock}" font-size="10">choque</text>`;
+    }
+    series.forEach(s=>{
+      const pts=s.data.map((v,i)=>{ if(!Number.isFinite(v))return null; const [sx,sy]=mapPoint(i,clamp(ty(v),lo,hi),xMin,xMax,lo,hi,W,H,pad); return `${sx.toFixed(1)},${sy.toFixed(1)}`;}).filter(Boolean);
+      svg+=`<polyline points="${pts.join(" ")}" fill="none" stroke="${s.color}" stroke-width="2.6"/>`;
+    });
+    let lx=pad.l+8;
+    series.forEach(s=>{ svg+=`<rect x="${lx}" y="${pad.t-2}" width="11" height="4" fill="${s.color}"/><text x="${lx+15}" y="${pad.t+3}" fill="${C.muted}" font-size="11">${s.name}</text>`; lx+=s.name.length*7+34; });
+    svg+=`</svg>`; return svg;
+  }
+
+  /* ================= CURTO / MÉDIO (IS-LM-BP + DA-OA) ================= */
+  const PADROES = { a:0.6,b:0.8,t:0.25,I0:2.5,d:0.5,G:3.0,nx:1.5,mx:0.10,v:0.3,e:1.0,
+    M:8.0,P:1.0,k:0.8,h:1.5, Y_n:10.0,P_e:1.0,gamma:0.6, pi_e:0.02,lam:0.4,r_f:0.04, phi:0.5 };
+  const GRUPOS = [
+    ["Mercado de bens, IS",[["a","a, consumo autônomo",0,2,0.01],["b","b, propensão marginal a consumir",0.05,0.95,0.01],["t","t, alíquota de imposto",0,0.60,0.01],["I0","I0, investimento autônomo",0,6,0.05],["d","d, sensibilidade do investimento a r",0.05,2.5,0.05],["G","G, gastos do governo",0,8,0.05]]],
+    ["Economia aberta, BP",[["nx","NX0, exportações líquidas autônomas",-3,5,0.05],["mx","m, propensão a importar",0,0.50,0.01],["v","v, sensibilidade cambial de NX",0,1.5,0.01],["e","e, taxa real de câmbio",0.2,2.5,0.01],["r_f","rf, juros externa",-0.05,0.20,0.005]]],
+    ["Mercado monetário, LM",[["M","M, oferta nominal de moeda",1,20,0.1],["P","P, nível de preços inicial",0.2,3,0.01],["k","k, demanda por moeda ligada à renda",0.1,2,0.01],["h","h, demanda por moeda ligada a juros",0.1,6,0.05]]],
+    ["Oferta agregada, Phillips e ajuste",[["Y_n","Yn, produto natural",5,15,0.1],["P_e","Pe, preço esperado",0.2,3,0.01],["gamma","gamma, inclinação da OA de curto prazo",0.1,2.5,0.05],["pi_e","pi_e, inflação esperada",-0.05,0.15,0.005],["lam","lambda, sensibilidade da Phillips",0,2,0.05],["phi","phi, velocidade de ajuste de preços (médio prazo)",0.05,1.5,0.05]]]
+  ];
+  const CHOQUES = {
+    nenhum:["Sem choque",{}], fiscal:["Expansão fiscal, G + 2",{G:2.0}],
+    imposto:["Aumento de impostos, t + 0,10",{t:0.10}], monetario:["Expansão monetária, M x 1,35",{M_mul:1.35}],
+    investim:["Otimismo dos investidores, I0 + 1,5",{I0:1.5}], oferta:["Choque adverso de oferta, Pe + 0,4",{P_e:0.4}],
+    megamon:["Choque monetário grande, M x 3",{M_mul:3.0}]
+  };
+  let pCM = {...PADROES};
+
+  const multFiscal=(b,t,mx)=>1/(1-b*(1-t)+mx);
+  const Abarra=p=>p.a+p.I0+p.G+p.nx;
+  const IS_r=(Y,p)=>(Abarra(p)-p.v*p.e-Y/multFiscal(p.b,p.t,p.mx))/p.d;
+  const LM_r=(Y,p)=>(p.k*Y-p.M/p.P)/p.h;
+  const BP_r=(Y,p)=>p.r_f+(p.mx*Y-p.nx+p.v*p.e)/5;
+  const BP_val=(Y,r,p)=>(p.nx-p.mx*Y-p.v*p.e)+5*(r-p.r_f);
+  function eqISLM(p){
+    const al=multFiscal(p.b,p.t,p.mx);
+    const num=(Abarra(p)-p.v*p.e)/p.d+p.M/(p.P*p.h);
+    const den=1/(al*p.d)+p.k/p.h;
+    const Y=num/den; return {Y,r:LM_r(Y,p)};
+  }
+  const DA_Y=(P,p)=>{ const al=multFiscal(p.b,p.t,p.mx);
+    return (al*(Abarra(p)-p.v*p.e)*p.h+al*p.d*(p.M/P))/(p.h+al*p.d*p.k); };
+  const OAC_Y=(P,p)=>p.Y_n+(P-p.P_e)/p.gamma;
+  function eqOADA(p){
+    const f=P=>DA_Y(P,p)-OAC_Y(P,p);
+    let lo=0.05,hi=14,P_eq=p.P_e;
+    if(f(lo)*f(hi)<0){ for(let i=0;i<80;i++){const mid=(lo+hi)/2; if(f(lo)*f(mid)<=0)hi=mid;else lo=mid;} P_eq=(lo+hi)/2; }
+    return {Y:DA_Y(P_eq,p),P:P_eq};
+  }
+  const phillips=(Y,p)=>p.pi_e+p.lam*(Y-p.Y_n)/p.Y_n;
+  function aplicarChoqueCM(p){
+    const chave=document.getElementById("choqueCM").value;
+    if(chave==="nenhum")return null;
+    const sp={...p}, delta=CHOQUES[chave][1];
+    Object.entries(delta).forEach(([k,v])=>{ if(k==="M_mul")sp.M=p.M*v; else sp[k]=p[k]+v; });
+    return sp;
+  }
+  // Simulação de ajuste de médio prazo: dado o choque em t=0, Pe se ajusta adaptativamente -> Y volta a Yn.
+  function simMedio(pBase, pShock, N){
+    const p0=pShock||pBase;
+    // encontra P de curto prazo dado Pe corrente (interseção DA x OA de curto)
+    function srP(p,Pe){
+      const f=P=>DA_Y(P,p)-(p.Y_n+(P-Pe)/p.gamma);
+      let lo=0.02,hi=20;
+      if(f(lo)*f(hi)>0) return Pe;
+      for(let i=0;i<70;i++){const m=(lo+hi)/2; if(f(lo)*f(m)<=0)hi=m;else lo=m;}
+      return (lo+hi)/2;
+    }
+    let Pe=pBase.P_e, Pprev=eqOADA(pBase).P;
+    const Y=[],P=[],PI=[];
+    // ponto base (antes do choque)
+    Y.push(eqOADA(pBase).Y); P.push(Pprev); PI.push(0);
+    for(let t=1;t<=N;t++){
+      const P_t=srP(p0,Pe);
+      const Y_t=p0.Y_n+(P_t-Pe)/p0.gamma;
+      Y.push(Y_t); P.push(P_t); PI.push((P_t-Pprev)/Pprev);
+      Pe=Pe+p0.phi*(P_t-Pe); Pprev=P_t;
+    }
+    return {Y,P,PI};
+  }
+  const INFO_MULT = {
+    "α keynesiano":{cor:C.IS,pontos:["Converte gasto autônomo em variação total do produto. Vazamentos (imposto, importação) reduzem."]},
+    "Fiscal, dY/dG":{cor:C.IS,pontos:["G sobe → IS e DA deslocam à direita; Y sobe mas r também, gerando efeito expulsão."]},
+    "Juros fiscais, dr/dG":{cor:C.IS,pontos:["Quanto a taxa de juros sobe quando o governo gasta mais."]},
+    "Tributário, dY/dt":{cor:C.SRAS,pontos:["Imposto maior corta renda disponível, consumo e produto (numérico)."]},
+    "Monetário, dY/dM":{cor:C.LM,pontos:["M sobe → LM à direita, r cai, investimento e produto sobem."]},
+    "Liquidez, dr/dM":{cor:C.LM,pontos:["Queda de r causada por expansão monetária."]},
+    "Investimento, dY/dI0":{cor:C.AD,pontos:["Choque de confiança opera como expansão fiscal."]},
+    "Índice de expulsão":{cor:C.shock,pontos:["Pressão dos juros sobre o investimento após estímulo fiscal."]}
+  };
+  function calcMult(p){
+    const base=eqISLM(p);
+    const ch=(k,d)=>{const eq=eqISLM({...p,[k]:p[k]+d});return{dY:eq.Y-base.Y,dr:eq.r-base.r};};
+    const sG=ch("G",1),st=ch("t",0.01),sM=ch("M",1),sI=ch("I0",1),al=multFiscal(p.b,p.t,p.mx);
+    return [["α keynesiano",al,"",""],["Fiscal, dY/dG",sG.dY,sG.dY,sG.dr],["Juros fiscais, dr/dG",sG.dr,"",sG.dr],
+      ["Tributário, dY/dt",st.dY*100,st.dY*100,st.dr*100],["Monetário, dY/dM",sM.dY,sM.dY,sM.dr],
+      ["Liquidez, dr/dM",sM.dr,"",sM.dr],["Investimento, dY/dI0",sI.dY,sI.dY,sI.dr],
+      ["Índice de expulsão",sG.dY!==0?-sG.dr/sG.dY:0,"",""]];
+  }
+  function gISLM(p,sp){
+    const W=560,H=380,pad={t:26,r:20,b:50,l:56}, xMin=2,xMax=16,yMin=-0.5,yMax=6;
+    const eq0=eqISLM(p),eq1=sp?eqISLM(sp):null;
+    const [ex,ey]=mapPoint(eq0.Y,eq0.r,xMin,xMax,yMin,yMax,W,H,pad);
+    let svg=`<svg viewBox="0 0 ${W} ${H}">`+axes([4,6,8,10,12,14],[0,1,2,3,4,5],xMin,xMax,yMin,yMax,W,H,pad,"Y","r");
+    svg+=`<path d="${pathXY(Y=>IS_r(Y,p),xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.IS}" stroke-width="3" fill="none"/>`;
+    svg+=`<path d="${pathXY(Y=>LM_r(Y,p),xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.LM}" stroke-width="3" fill="none"/>`;
+    svg+=`<path d="${pathXY(Y=>BP_r(Y,p),xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.BP}" stroke-width="3" fill="none"/>`;
+    if(sp){ svg+=`<path d="${pathXY(Y=>IS_r(Y,sp),xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.shock}" stroke-width="2.4" stroke-dasharray="7 6" fill="none"/>`;
+      svg+=`<path d="${pathXY(Y=>LM_r(Y,sp),xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.AD}" stroke-width="2.4" stroke-dasharray="7 6" fill="none"/>`;
+      const e1=mapPoint(eq1.Y,eq1.r,xMin,xMax,yMin,yMax,W,H,pad);
+      svg+=`<circle cx="${e1[0]}" cy="${e1[1]}" r="6" fill="${C.shock}"/><text x="${e1[0]+9}" y="${e1[1]-9}" fill="${C.shock}" font-size="11">E1</text>`; }
+    svg+=`<circle cx="${ex}" cy="${ey}" r="6" fill="${C.EQ}"/><text x="${ex+9}" y="${ey-9}" fill="${C.EQ}" font-size="11">E0</text>`;
+    svg+=`<text x="76" y="40" fill="${C.IS}" font-size="12">IS</text><text x="108" y="40" fill="${C.LM}" font-size="12">LM</text><text x="146" y="40" fill="${C.BP}" font-size="12">BP</text></svg>`;
+    return svg;
+  }
+  function gOADA(p,sp){
+    const W=560,H=380,pad={t:26,r:20,b:50,l:56}, xMin=2,xMax=16,yMin=0.2,yMax=3.2;
+    const eq0=eqOADA(p),eq1=sp?eqOADA(sp):null;
+    const [ex,ey]=mapPoint(eq0.Y,eq0.P,xMin,xMax,yMin,yMax,W,H,pad);
+    let svg=`<svg viewBox="0 0 ${W} ${H}">`+axes([4,6,8,10,12,14],[0.5,1,1.5,2,2.5,3],xMin,xMax,yMin,yMax,W,H,pad,"Y","P");
+    const daP=P=>({x:DA_Y(P,p),y:P});
+    svg+=`<path d="${pathParam(daP,yMin,yMax,xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.AD}" stroke-width="3" fill="none"/>`;
+    svg+=`<path d="${pathParam(P=>({x:OAC_Y(P,p),y:P}),yMin,yMax,xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.SRAS}" stroke-width="3" fill="none"/>`;
+    const [ynx]=mapPoint(p.Y_n,yMin,xMin,xMax,yMin,yMax,W,H,pad);
+    svg+=`<line x1="${ynx}" y1="${pad.t}" x2="${ynx}" y2="${H-pad.b}" stroke="${C.LRAS}" stroke-width="2.5" stroke-dasharray="6 5"/>`;
+    if(sp){ svg+=`<path d="${pathParam(P=>({x:DA_Y(P,sp),y:P}),yMin,yMax,xMin,xMax,yMin,yMax,W,H,pad)}" stroke="${C.shock}" stroke-width="2.4" stroke-dasharray="7 6" fill="none"/>`;
+      const e1=mapPoint(eq1.Y,eq1.P,xMin,xMax,yMin,yMax,W,H,pad);
+      svg+=`<circle cx="${e1[0]}" cy="${e1[1]}" r="6" fill="${C.shock}"/><text x="${e1[0]+9}" y="${e1[1]-9}" fill="${C.shock}" font-size="11">E1</text>`; }
+    svg+=`<circle cx="${ex}" cy="${ey}" r="6" fill="${C.EQ}"/><text x="${ex+9}" y="${ey-9}" fill="${C.EQ}" font-size="11">E0</text>`;
+    svg+=`<text x="76" y="40" fill="${C.AD}" font-size="12">DA</text><text x="112" y="40" fill="${C.SRAS}" font-size="12">OA CP</text><text x="166" y="40" fill="${C.LRAS}" font-size="12">OA LP</text></svg>`;
+    return svg;
+  }
+  function pathParam(fn,tMin,tMax,xMin,xMax,yMin,yMax,W,H,pad,steps=240){
+    const pts=[];
+    for(let i=0;i<=steps;i++){ const t=tMin+(i/steps)*(tMax-tMin); const {x,y}=fn(t);
+      if(Number.isFinite(x)&&Number.isFinite(y)&&x>=xMin-2&&x<=xMax+2&&y>=yMin-1&&y<=yMax+1){
+        const [sx,sy]=mapPoint(x,y,xMin,xMax,yMin,yMax,W,H,pad); pts.push(`${pts.length?"L":"M"}${sx.toFixed(1)},${sy.toFixed(1)}`);} }
+    return pts.join(" ");
+  }
+  function renderCM(){
+    const sp=aplicarChoqueCM(pCM);
+    const islm=eqISLM(pCM),oada=eqOADA(pCM),bp=BP_val(islm.Y,islm.r,pCM),pi=phillips(oada.Y,pCM);
+    const sim=simMedio(pCM,sp,28);
+    const s2=sp?eqISLM(sp):null, o2=sp?eqOADA(sp):null;
+    const cards=[["Curto prazo Y (IS-LM)",fmt(islm.Y),s2?`choque ${fmt(s2.Y)}`:"preços fixos"],
+      ["Juros r",fmt(islm.r),s2?`choque ${fmt(s2.r)}`:"base"],
+      ["Médio prazo Y",fmt(sim.Y[sim.Y.length-1]),`→ natural ${fmt(pCM.Y_n)}`],
+      ["Preço P (médio)",fmt(sim.P[sim.P.length-1]),o2?`choque ${fmt(o2.P)}`:"base"],
+      ["Balanço BP",fmt(bp),bp>=0?"superávit":"déficit"]];
+    document.getElementById("metricasCM").innerHTML=cards.map(([t,v,s])=>`<div class="metric"><span>${t}</span><strong>${v}</strong><span>${s}</span></div>`).join("");
+    document.getElementById("gISLM").innerHTML=gISLM(pCM,sp);
+    document.getElementById("gOADA").innerHTML=gOADA(pCM,sp);
+    document.getElementById("gYt").innerHTML=timeChart([
+      {name:"Y (produto)",color:C.Y,data:sim.Y},
+      {name:"Yn (natural)",color:C.LRAS,data:sim.Y.map(()=>pCM.Y_n)}
+    ],{ylabel:"Y",xlabel:"períodos após o choque",markMedium:sp?0:null});
+    document.getElementById("gPit").innerHTML=timeChart([
+      {name:"inflação π",color:C.PC,data:sim.PI},
+      {name:"nível P",color:C.SRAS,data:sim.P}
+    ],{ylabel:"π e P",xlabel:"períodos",markMedium:sp?0:null});
+    const li=[];
+    li.push(`<strong>Curto prazo:</strong> com preços fixos, o produto é <span class="tag">${fmt(islm.Y)}</span> e os juros <span class="tag">${fmt(islm.r)}</span> (interseção IS-LM).`);
+    li.push(`<strong>Médio prazo:</strong> preços e expectativas se ajustam (φ=${fmt(pCM.phi,2)}); o produto converge de volta ao natural <span class="tag">${fmt(pCM.Y_n)}</span> e sobra só variação de preços.`);
+    li.push(`<strong>Longo prazo:</strong> aqui o produto natural é fixo. Vá à aba <em>Solow</em> para deixar o próprio Yn crescer com capital e tecnologia.`);
+    if(sp) li.push(`Com o choque, o produto salta no curto prazo e depois a economia "engole" o excesso via preços — clássico ajuste keynesiano → clássico.`);
+    document.getElementById("leituraCM").innerHTML=li.map(l=>`<li>${l}</li>`).join("");
+    const rows=calcMult(pCM);
+    document.getElementById("tabMult").innerHTML=`<thead><tr><th>Multiplicador</th><th>Valor</th><th>dY</th><th>dr</th><th>Interpretação</th></tr></thead><tbody>`+
+      rows.map(([n,v,dY,dr])=>{const info=INFO_MULT[n];return `<tr><td><strong style="color:${info?info.cor:C.text}">${n}</strong></td><td>${fmt(v,4)}</td><td>${dY===""?"":fmt(dY,4)}</td><td>${dr===""?"":fmt(dr,4)}</td><td>${info?info.pontos[0]:""}</td></tr>`;}).join("")+`</tbody>`;
+  }
+
+  /* ================= LONGO PRAZO — SOLOW ================= */
+  const SOL_PAD = { s:0.25, n:0.01, g:0.02, delta:0.05, alpha:0.33, A0:1.0, k0:1.0 };
+  const SOL_CTRL = [
+    ["s","s, taxa de poupança",0.01,0.9,0.01],
+    ["alpha","α, participação do capital",0.1,0.7,0.01],
+    ["n","n, crescimento populacional",-0.01,0.06,0.001],
+    ["g","g, progresso tecnológico",0,0.06,0.001],
+    ["delta","δ, depreciação",0.01,0.15,0.005],
+    ["A0","A0, nível tecnológico inicial",0.3,3,0.1],
+    ["k0","k0, capital inicial (por unidade eficiente)",0.05,12,0.05]
+  ];
+  let pSol = {...SOL_PAD};
+  const solBreak = p => p.n+p.g+p.delta;
+  const solKstar = p => Math.pow(p.s/solBreak(p), 1/(1-p.alpha));
+  const solKgold = p => Math.pow(p.alpha/solBreak(p), 1/(1-p.alpha));
+  const solF = (k,p)=>Math.pow(Math.max(k,0),p.alpha);
+  function simSolow(p,T=200,dt=0.25){
+    const brk=solBreak(p); let k=p.k0; const K=[],Yk=[],Ck=[],Ik=[],DK=[];
+    for(let t=0;t<=T;t+=dt){
+      const y=solF(k,p), i=p.s*y, c=(1-p.s)*y, dk=i-brk*k;
+      K.push(k);Yk.push(y);Ck.push(c);Ik.push(i);DK.push(dk);
+      k=Math.max(1e-9,k+dk*dt);
+    }
+    return {K,Yk,Ck,Ik,DK,dt,T};
+  }
+  function gSolFase(p){
+    const W=540,H=340,pad={t:24,r:18,b:46,l:56};
+    const kstar=solKstar(p), kg=solKgold(p), brk=solBreak(p);
+    const xMax=Math.max(kstar*1.8,kg*1.6,4), yMax=Math.max(solF(xMax,p),xMax*brk)*1.05;
+    let svg=`<svg viewBox="0 0 ${W} ${H}">`+axes([0,xMax*0.25,xMax*0.5,xMax*0.75,xMax].map(x=>+x.toFixed(1)),
+      [0,yMax*0.25,yMax*0.5,yMax*0.75,yMax].map(y=>+y.toFixed(1)),0,xMax,0,yMax,W,H,pad,"k (capital por unidade eficiente)","");
+    svg+=`<path d="${pathXY(k=>solF(k,p),0,xMax,0,yMax,W,H,pad)}" stroke="${C.Y}" stroke-width="2.6" fill="none"/>`;
+    svg+=`<path d="${pathXY(k=>p.s*solF(k,p),0,xMax,0,yMax,W,H,pad)}" stroke="${C.Inv}" stroke-width="2.8" fill="none"/>`;
+    svg+=`<path d="${pathXY(k=>brk*k,0,xMax,0,yMax,W,H,pad)}" stroke="${C.warn}" stroke-width="2.4" fill="none"/>`;
+    const es=mapPoint(kstar,p.s*solF(kstar,p),0,xMax,0,yMax,W,H,pad);
+    svg+=`<line x1="${es[0]}" y1="${pad.t}" x2="${es[0]}" y2="${H-pad.b}" stroke="${C.EQ}" stroke-opacity="0.5" stroke-dasharray="4 4"/>`;
+    svg+=`<circle cx="${es[0]}" cy="${es[1]}" r="5.5" fill="${C.EQ}"/><text x="${es[0]+8}" y="${es[1]-8}" fill="${C.EQ}" font-size="11">k* = ${fmt(kstar,2)}</text>`;
+    const gx=mapPoint(kg,0,0,xMax,0,yMax,W,H,pad)[0];
+    svg+=`<line x1="${gx}" y1="${pad.t}" x2="${gx}" y2="${H-pad.b}" stroke="${C.gold}" stroke-opacity="0.7" stroke-dasharray="6 5"/><text x="${gx+4}" y="${pad.t+12}" fill="${C.gold}" font-size="10">ouro k=${fmt(kg,2)}</text>`;
+    svg+=`<text x="${pad.l+10}" y="${pad.t+14}" fill="${C.Y}" font-size="11">f(k)=k^α</text><text x="${pad.l+10}" y="${pad.t+30}" fill="${C.Inv}" font-size="11">s·f(k)</text><text x="${pad.l+10}" y="${pad.t+46}" fill="${C.warn}" font-size="11">(n+g+δ)k</text>`;
+    svg+=`</svg>`; return svg;
+  }
+  function gSolTempo(p){
+    const sim=simSolow(p); const n=sim.K.length; const step=Math.max(1,Math.round(n/120));
+    const dec=arr=>arr.filter((_,i)=>i%step===0);
+    return timeChart([
+      {name:"k",color:C.K,data:dec(sim.K)},
+      {name:"y=f(k)",color:C.Y,data:dec(sim.Yk)},
+      {name:"c (consumo)",color:C.Cc,data:dec(sim.Ck)}
+    ],{ylabel:"por unidade eficiente",xlabel:`tempo (passos de ${sim.dt})`});
+  }
+  function gSolGolden(p){
+    const W=540,H=340,pad={t:24,r:18,b:46,l:56};
+    // c*(s) = (1-s) * (s/brk)^(alpha/(1-alpha))
+    const brk=solBreak(p);
+    const cstar=s=>{ const ks=Math.pow(s/brk,1/(1-p.alpha)); return (1-s)*solF(ks,p); };
+    let yMax=0; for(let s=0.02;s<0.98;s+=0.01)yMax=Math.max(yMax,cstar(s)); yMax*=1.1;
+    let svg=`<svg viewBox="0 0 ${W} ${H}">`+axes([0,0.25,0.5,0.75,1],[0,yMax*0.25,yMax*0.5,yMax*0.75,yMax].map(v=>+v.toFixed(2)),0,1,0,yMax,W,H,pad,"taxa de poupança s","c*",v=>fmt(v,2));
+    svg+=`<path d="${pathXY(s=>cstar(s),0.02,0.98,0,yMax,W,H,pad)}" stroke="${C.Cc}" stroke-width="2.8" fill="none"/>`;
+    const sg=p.alpha, cg=cstar(sg), gp=mapPoint(sg,cg,0,1,0,yMax,W,H,pad);
+    svg+=`<line x1="${gp[0]}" y1="${pad.t}" x2="${gp[0]}" y2="${H-pad.b}" stroke="${C.gold}" stroke-dasharray="6 5"/><circle cx="${gp[0]}" cy="${gp[1]}" r="5.5" fill="${C.gold}"/><text x="${gp[0]+8}" y="${gp[1]-8}" fill="${C.gold}" font-size="11">regra de ouro s=α=${fmt(sg,2)}</text>`;
+    const sp=mapPoint(p.s,cstar(p.s),0,1,0,yMax,W,H,pad);
+    svg+=`<circle cx="${sp[0]}" cy="${sp[1]}" r="5.5" fill="${C.EQ}"/><text x="${sp[0]+8}" y="${sp[1]+14}" fill="${C.EQ}" font-size="11">seu s=${fmt(p.s,2)}</text>`;
+    svg+=`</svg>`; return svg;
+  }
+  function gSolNiveis(p){
+    // produto por trabalhador Y/L = A * y, com A = A0 e^{g t}. Escala log evidencia crescimento a taxa g.
+    const sim=simSolow(p); const n=sim.K.length; const step=Math.max(1,Math.round(n/120));
+    const yl=[]; for(let i=0;i<n;i+=step){ const A=p.A0*Math.exp(p.g*i*sim.dt); yl.push(A*sim.Yk[i]); }
+    return timeChart([{name:"Y/L (produto por trabalhador)",color:C.Inv,data:yl}],
+      {log:true,ylabel:"Y/L (log)",xlabel:`tempo (passos de ${sim.dt})`});
+  }
+  function renderSol(){
+    const kstar=solKstar(pSol), ystar=solF(kstar,pSol), cstar=(1-pSol.s)*ystar, brk=solBreak(pSol);
+    const kg=solKgold(pSol), cg=(1-pSol.alpha)*solF(kg,pSol);
+    const mpk=pSol.alpha*Math.pow(kstar,pSol.alpha-1);
+    const cards=[["k* estado estacionário",fmt(kstar,3),`quebra n+g+δ=${pct(brk,1)}`],
+      ["y* = f(k*)",fmt(ystar,3),"produto por unid. eficiente"],
+      ["c* consumo",fmt(cstar,3),`ouro máx ${fmt(cg,3)}`],
+      ["PMgK − δ",fmt(mpk-pSol.delta,3),`ouro exige = n+g = ${pct(pSol.n+pSol.g,1)}`]];
+    document.getElementById("metricasSol").innerHTML=cards.map(([t,v,s])=>`<div class="metric"><span>${t}</span><strong>${v}</strong><span>${s}</span></div>`).join("");
+    document.getElementById("gSolFase").innerHTML=gSolFase(pSol);
+    document.getElementById("gSolTempo").innerHTML=gSolTempo(pSol);
+    document.getElementById("gSolGolden").innerHTML=gSolGolden(pSol);
+    document.getElementById("gSolNiveis").innerHTML=gSolNiveis(pSol);
+    const dif=pSol.s-pSol.alpha;
+    const li=[
+      `No estado estacionário, <span class="tag">k*=${fmt(kstar,3)}</span> e o produto por trabalhador cresce a <span class="tag">g=${pct(pSol.g,1)}</span> ao ano; o produto agregado cresce a <span class="tag">n+g=${pct(pSol.n+pSol.g,1)}</span>.`,
+      Math.abs(dif)<0.005 ? `Você está <strong>na regra de ouro</strong> (s≈α): o consumo de estado estacionário é o máximo possível.` :
+        dif>0 ? `Você poupa <strong>acima</strong> da regra de ouro (s=${fmt(pSol.s,2)} > α=${fmt(pSol.alpha,2)}): dá para consumir mais reduzindo a poupança — <em>ineficiência dinâmica</em>.` :
+        `Você poupa <strong>abaixo</strong> da regra de ouro (s=${fmt(pSol.s,2)} < α=${fmt(pSol.alpha,2)}): poupar mais elevaria o consumo de longo prazo (com sacrifício hoje).`,
+      `A regra de ouro modificada (Ramsey) exige PMgK − δ = ρ + θg em vez de = n+g. Veja a dedução completa na aba <em>Teoria</em>.`
+    ];
+    document.getElementById("leituraSol").innerHTML=li.map(l=>`<li>${l}</li>`).join("");
+  }
+
+  /* ================= LABORATÓRIO DE CHOQUES ================= */
+  // Hiperinflação — modelo de Cagan com expectativas adaptativas.
+  // Demanda por moeda: m_t - p_t = -η·π^e_t  ⇒  p_t = m_t + η·π^e_t  (logs)
+  // m cresce μ por mês (em log). Expectativa adaptativa: π^e_{t+1}=π^e_t+λ(π_t-π^e_t).
+  const HIPER = [
+    ["Hungria, 1946","hungria",13.72, "≈4,19×10¹⁶% ao mês — a pior da história; preços dobravam a cada ~15 horas."],
+    ["Zimbábue, nov/2008","zimbabue",6.5, "≈7,96×10¹⁰% ao mês (79,6 bilhões %); preços dobravam a cada ~24,7 horas."],
+    ["Iugoslávia, jan/1994","iugoslavia",5.0, "≈3,13×10⁸% ao mês (313 milhões %); preços dobravam a cada ~1,4 dia."],
+    ["Weimar (Alemanha), out/1923","weimar",2.6, "≈29.500% ao mês; preços dobravam a cada ~3,7 dias."],
+    ["Grécia, out/1944","grecia",2.3, "≈13.800% ao mês; preços dobravam a cada ~4,3 dias."],
+    ["Venezuela, 2018","venezuela",1.3, "pico mensal na casa das centenas de %; colapso prolongado da moeda."]
+  ];
+  // ranking histórico (pico mensal aproximado) para a tabela
+  const RANK = [
+    ["Hungria","jul 1946","4,19 × 10¹⁶ %","15 horas"],
+    ["Zimbábue","nov 2008","7,96 × 10¹⁰ %","24,7 horas"],
+    ["Iugoslávia","jan 1994","3,13 × 10⁸ %","1,4 dia"],
+    ["Rep. Srpska","jan 1994","2,97 × 10⁸ %","1,4 dia"],
+    ["Alemanha (Weimar)","out 1923","29.500 %","3,7 dias"],
+    ["Grécia","out 1944","13.800 %","4,3 dias"],
+    ["China","mai 1949","5.070 %","5,3 dias"],
+    ["Venezuela","jan 2019","~330 %","~18 dias"]
+  ];
+  let pCh = { Mmul:5, mu:0.50, accel:0.15, eta:4, meses:24 };
+  // Forma reduzida robusta e monótona: inflação mensal = crescimento da moeda μ_t;
+  // o governo acelera a emissão (accel) a cada mês; os saldos reais desabam com η (fuga da moeda).
+  function simCagan(mu, accel, eta, N){
+    const CAP=1e15;                      // teto para não estourar em Infinity no gráfico
+    let muT=mu, lp=0;                     // lp = log10 do nível de preços
+    const P=[1], PI=[0], REAL=[1];
+    for(let t=1;t<=N;t++){
+      const pi=Math.min(muT,CAP);        // inflação mensal
+      lp+=Math.log10(1+pi);
+      P.push(Math.pow(10,Math.min(lp,300)));
+      PI.push(pi);
+      REAL.push(Math.exp(-eta*Math.min(pi,50))); // demanda real por moeda (Cagan): L=e^{-η·π}
+      muT=muT*(1+accel);
+    }
+    return {P,PI,REAL};
+  }
+  function renderCh(){
+    // Choque monetário livre reaproveita IS-LM-BP do estado atual da aba curto/médio
+    const base=eqISLM(pCM);
+    const pMul={...pCM, M:pCM.M*pCh.Mmul};
+    const eqM=eqISLM(pMul), oaM=eqOADA(pMul);
+    document.getElementById("mtextCh").innerHTML=
+      `Multiplicar a base monetária por <span class="tag">×${fmt(pCh.Mmul,1)}</span> (M de ${fmt(pCM.M,1)} para ${fmt(pCM.M*pCh.Mmul,1)}) no curto prazo empurra a LM para a direita e derruba os juros. `+
+      `Mas no médio/longo prazo <strong>preços seguem a moeda</strong>: o produto real volta ao natural e sobra inflação. É o experimento clássico da neutralidade da moeda levada ao extremo.`;
+    const cards=[["Juros curto prazo",fmt(eqM.r),`base ${fmt(base.r)}`],
+      ["Produto curto prazo",fmt(eqM.Y),`base ${fmt(base.Y)}`],
+      ["Preço de médio prazo",fmt(oaM.P),`base ${fmt(eqOADA(pCM).P)}`],
+      ["Inflação implícita",pct(oaM.P/eqOADA(pCM).P-1,1),"P sobe ~ na proporção de M"]];
+    document.getElementById("metricasCh").innerHTML=cards.map(([t,v,s])=>`<div class="metric"><span>${t}</span><strong>${v}</strong><span>${s}</span></div>`).join("");
+
+    const sim=simCagan(pCh.mu, pCh.accel, pCh.eta, pCh.meses);
+    const piFim=sim.PI[sim.PI.length-1], Pfim=sim.P[sim.P.length-1], realFim=sim.REAL[sim.REAL.length-1];
+    document.getElementById("hyperInfo").innerHTML=
+      `Com μ=<span class="tag">${(pCh.mu*100).toFixed(0)}%</span> ao mês acelerando <span class="tag">${(pCh.accel*100).toFixed(0)}%</span> a cada mês e η=${fmt(pCh.eta,1)}: em ${pCh.meses} meses a inflação mensal chega a <strong>${pct(piFim,piFim>10?0:1)}</strong> e o nível de preços multiplica por <strong>${Pfim>1e6?Pfim.toExponential(2):fmt(Pfim,0)}×</strong>. `+
+      `Os saldos reais caem para <strong>${pct(realFim,realFim<0.01?2:0)}</strong> do inicial — a fuga da moeda: ninguém quer segurar dinheiro que derrete, o que só acelera a inflação.`;
+    document.getElementById("gHiperPi").innerHTML=timeChart([{name:"π mensal",color:C.warn,data:sim.PI}],{pctY:true,ylabel:"π/mês",xlabel:"mês"});
+    document.getElementById("gHiperP").innerHTML=timeChart([{name:"nível de preços",color:C.shock,data:sim.P}],{log:true,ylabel:"P (log)",xlabel:"mês"});
+    document.getElementById("tabHiper").innerHTML=`<thead><tr><th>País</th><th>Pico (mês)</th><th>Inflação mensal</th><th>Preços dobram em</th></tr></thead><tbody>`+
+      RANK.map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td class="tag">${r[2]}</td><td>${r[3]}</td></tr>`).join("")+`</tbody>`;
+  }
+
+  /* ================= TEORIA ================= */
+  const TEORIA = `
+  <div class="card prose">
+    <h2>1. Solow: dedução completa</h2>
+    <p>Função de produção com tecnologia aumentadora de trabalho (Harrod-neutra), retornos constantes de escala:</p>
+    <div class="formula">Y = K<sup>α</sup> (A·L)<sup>1−α</sup>,&nbsp; 0 &lt; α &lt; 1</div>
+    <p>Defina variáveis <strong>por unidade de trabalho eficiente</strong>: k = K/(AL), y = Y/(AL). Dividindo por AL:</p>
+    <div class="formula">y = k<sup>α</sup> = f(k),&nbsp; f'(k) = α k<sup>α−1</sup> &gt; 0,&nbsp; f''(k) &lt; 0 (rendimentos decrescentes)</div>
+    <p>A população cresce a n (L̇/L = n) e a tecnologia a g (Ȧ/A = g). O capital acumula com poupança s e deprecia a δ:</p>
+    <div class="formula">K̇ = s·Y − δK</div>
+    <p>Derivando k = K/(AL) no tempo (regra do produto) e substituindo, chega-se à <strong>equação fundamental de Solow</strong>:</p>
+    <div class="formula">k̇ = s·f(k) − (n + g + δ)·k</div>
+    <p>O termo s·f(k) é o investimento efetivo por unidade eficiente; (n+g+δ)k é o "investimento de reposição" necessário para manter k constante (repor depreciação δ, equipar novos trabalhadores n e acompanhar a maior eficiência g).</p>
+    <h4>Estado estacionário (k̇ = 0)</h4>
+    <div class="formula">s·f(k*) = (n+g+δ)·k*&nbsp; ⇒&nbsp; k* = [ s / (n+g+δ) ]<sup>1/(1−α)</sup></div>
+    <div class="formula">y* = k*<sup>α</sup>,&nbsp; c* = (1−s)·y*</div>
+    <p><strong>Convergência:</strong> como f é côncava, se k &lt; k* então k̇ &gt; 0 (a economia cresce até k*); se k &gt; k*, k̇ &lt; 0. O estado estacionário é estável. Fora dele estamos no "curto/médio prazo" da transição; nele, na <em>senda de crescimento equilibrado</em> (longo prazo): Y/L cresce a g, Y cresce a n+g, e Y/K é constante.</p>
+  </div>
+
+  <div class="card prose">
+    <h2>2. Regra de ouro do capital</h2>
+    <p>Qual taxa de poupança maximiza o consumo de estado estacionário? Substituindo k* em c* = f(k*) − (n+g+δ)k*, maximizamos em k*:</p>
+    <div class="formula">dc*/dk* = f'(k<sub>ouro</sub>) − (n+g+δ) = 0&nbsp; ⇒&nbsp; f'(k<sub>ouro</sub>) = n + g + δ</div>
+    <p>Ou seja, a <strong>produtividade marginal do capital líquida de depreciação iguala n+g</strong>: PMgK − δ = n + g. Para Cobb-Douglas, f'(k)=α k<sup>α−1</sup>, isso dá a taxa de poupança de ouro:</p>
+    <div class="formula">s<sub>ouro</sub> = α&nbsp; (a participação do capital na renda)</div>
+    <ul>
+      <li><strong>s &gt; α:</strong> ineficiência dinâmica — poupa-se demais; é possível consumir mais <em>hoje e sempre</em> reduzindo a poupança (Pareto-melhora sem custo).</li>
+      <li><strong>s &lt; α:</strong> poupa-se de menos para o consumo máximo de longo prazo, mas aumentar s custa consumo no presente — há um trade-off intertemporal real.</li>
+    </ul>
+  </div>
+
+  <div class="card prose">
+    <h2>3. Controle ótimo: o modelo de Ramsey-Cass-Koopmans</h2>
+    <p>Solow supõe s constante e exógeno. Ramsey deixa a <em>poupança ser escolhida</em> por um planejador (ou famílias) que maximiza o bem-estar. Problema de controle ótimo em tempo contínuo — estado k, controle c:</p>
+    <div class="formula">max<sub>c(t)</sub>&nbsp; ∫<sub>0</sub><sup>∞</sup> e<sup>−ρt</sup> u(c) dt&nbsp; s.a.&nbsp; k̇ = f(k) − c − (n+g+δ)k,&nbsp; k(0)=k₀</div>
+    <p>com utilidade CRRA: u(c) = (c<sup>1−θ</sup> − 1)/(1−θ), onde θ é a aversão relativa ao risco / inverso da elasticidade de substituição intertemporal, e ρ &gt; 0 é a taxa de desconto.</p>
+    <h4>Hamiltoniano de valor presente</h4>
+    <div class="formula">H = e<sup>−ρt</sup> u(c) + μ·[ f(k) − c − (n+g+δ)k ]</div>
+    <p>Usando o Hamiltoniano de valor corrente Ĥ = u(c) + λ[f(k)−c−(n+g+δ)k] com λ = μe<sup>ρt</sup>, as <strong>condições de primeira ordem</strong> (princípio do máximo de Pontryagin) são:</p>
+    <div class="formula">(i)&nbsp; ∂Ĥ/∂c = 0&nbsp; ⇒&nbsp; u'(c) = λ</div>
+    <div class="formula">(ii)&nbsp; λ̇ = ρλ − ∂Ĥ/∂k = λ[ ρ + (n+g+δ) − f'(k) ]</div>
+    <div class="formula">(iii)&nbsp; condição de transversalidade:&nbsp; lim<sub>t→∞</sub> e<sup>−ρt</sup> λ k = 0</div>
+    <p>Derivando (i) no tempo (u''(c)ċ = λ̇) e combinando com (ii), obtém-se a <strong>equação de Euler / regra de Keynes-Ramsey</strong>:</p>
+    <div class="formula">ċ/c = (1/θ) · [ f'(k) − δ − ρ − θg ]</div>
+    <p>Interpretação: o consumo cresce quando o retorno do capital (f'(k)−δ) supera a impaciência ajustada (ρ+θg). Se poupar rende mais que a pressa em consumir, adia-se o consumo.</p>
+    <h4>Regra de ouro modificada</h4>
+    <p>No estado estacionário do Ramsey, ċ = 0, logo:</p>
+    <div class="formula">f'(k**) − δ = ρ + θg&nbsp; ⇒&nbsp; f'(k**) = ρ + δ + θg</div>
+    <p>Compare com a regra de ouro pura (f'=n+g+δ, i.e. f'−δ=n+g). Como em equilíbrio dinâmico ρ &gt; n+(1−θ)g (para a integral convergir), tem-se ρ+θg &gt; n+g, portanto <strong>f'(k**) &gt; f'(k<sub>ouro</sub>)</strong> e, por concavidade, <strong>k** &lt; k<sub>ouro</sub></strong>. O ótimo poupa <em>menos</em> que a regra de ouro: descontar o futuro (ρ) torna irracional sacrificar consumo presente até o máximo de longo prazo. A economia de Ramsey nunca é dinamicamente ineficiente.</p>
+  </div>
+
+  <div class="card prose">
+    <h2>4. Programação dinâmica: Bellman e a HJB</h2>
+    <p>O mesmo problema resolvido por programação dinâmica. Defina a <strong>função valor</strong> — o bem-estar máximo alcançável partindo do capital k:</p>
+    <div class="formula">V(k) = max<sub>c(·)</sub> ∫<sub>0</sub><sup>∞</sup> e<sup>−ρt</sup> u(c) dt&nbsp; s.a.&nbsp; k̇ = f(k) − c − (n+g+δ)k</div>
+    <p>O <strong>princípio da otimalidade</strong> de Bellman diz que uma política ótima tem a propriedade de que, seja qual for o estado inicial e a primeira decisão, as decisões restantes formam uma política ótima a partir do novo estado. Em tempo discreto (passo Δ):</p>
+    <div class="formula">V(k) = max<sub>c</sub> { u(c)·Δ + e<sup>−ρΔ</sup> V(k + k̇·Δ) }</div>
+    <p>Expandindo e<sup>−ρΔ</sup> ≈ 1−ρΔ e V(k+k̇Δ) ≈ V(k)+V'(k)k̇Δ, dividindo por Δ e fazendo Δ→0, chega-se à <strong>equação de Hamilton-Jacobi-Bellman (HJB)</strong>:</p>
+    <div class="formula">ρ V(k) = max<sub>c</sub> { u(c) + V'(k)·[ f(k) − c − (n+g+δ)k ] }</div>
+    <p>A condição de primeira ordem interna dá a <strong>ponte entre os dois métodos</strong> — a derivada da função valor <em>é</em> o co-estado do controle ótimo:</p>
+    <div class="formula">u'(c) = V'(k) = λ&nbsp; (o preço-sombra do capital)</div>
+    <p>Diferenciando a HJB em k recupera-se exatamente a equação de Euler acima. Controle ótimo (Pontryagin) e programação dinâmica (Bellman) descrevem a mesma solução: um dá a trajetória (condições necessárias ao longo do tempo), o outro dá a <em>regra de decisão</em> c = c(k) (política ótima como função do estado).</p>
+  </div>
+
+  <div class="card prose">
+    <h2>5. Como os três horizontes se conversam</h2>
+    <ul>
+      <li><strong>Curto prazo (IS-LM-BP):</strong> preços rígidos, expectativas dadas. Moeda e política fiscal movem o produto real. É a aba <em>Curto e Médio prazo</em>, gráfico IS-LM.</li>
+      <li><strong>Médio prazo (DA-OA / Phillips):</strong> preços e expectativas se ajustam; o produto retorna ao natural Yn e o que sobra do choque monetário vira inflação. É a simulação temporal daquela aba.</li>
+      <li><strong>Longo prazo (Solow / Ramsey):</strong> o próprio Yn cresce pela acumulação de capital e progresso técnico. A moeda é neutra; o que importa são poupança, tecnologia e demografia. É a aba <em>Solow</em>.</li>
+    </ul>
+    <p>A <strong>neutralidade da moeda no longo prazo</strong> é o fio condutor do laboratório de choques: quintuplicar M não cria riqueza real permanente — cria inflação. No limite patológico (Cagan), a fuga da moeda realimenta a alta e produz as hiperinflações históricas da tabela.</p>
+  </div>
+
+  <div class="card prose">
+    <h2>6. Modelo de Cagan (hiperinflação)</h2>
+    <p>Demanda por moeda que depende só da inflação esperada (nas hiperinflações a renda real é secundária), em logaritmos:</p>
+    <div class="formula">m<sub>t</sub> − p<sub>t</sub> = −η · π<sup>e</sup><sub>t</sub>&nbsp; (η &gt; 0 = semi-elasticidade)</div>
+    <p>Resolvendo para o nível de preços: p<sub>t</sub> = m<sub>t</sub> + η π<sup>e</sup><sub>t</sub>. Se a moeda cresce a μ e as expectativas são adaptativas (π<sup>e</sup> revisada por λ do erro), uma expectativa maior de inflação reduz a demanda por saldos reais, o que exige preços ainda mais altos — o laço de realimentação. Com previsão perfeita e μ crescente, p explode mesmo com m finito: é a moeda perdendo a função de reserva de valor. Ajuste μ, η e λ na aba de choques e observe o índice de preços em escala log.</p>
+  </div>`;
+
+  /* ================= CONTROLES (gerador compartilhado) ================= */
+  function buildControls(container, grupos, state, onChange){
+    container.innerHTML = grupos.map(g=>{
+      const [titulo,itens]=Array.isArray(g[1])?g:[null,g];
+      const linhas=(titulo?itens:[g]).map(it=>{
+        const [id,rot,min,max,step]=it;
+        return `<label class="control"><span><small>${rot}</small>
+          <input type="range" data-id="${id}" min="${min}" max="${max}" step="${step}" value="${state[id]}"></span>
+          <input type="number" data-num="${id}" min="${min}" max="${max}" step="${step}" value="${state[id]}"></label>`;
+      }).join("");
+      return titulo?`<details open><summary>${titulo}</summary>${linhas}</details>`:linhas;
+    }).join("");
+    container.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",e=>{
+      const id=e.target.dataset.id||e.target.dataset.num, v=Number(e.target.value);
+      if(!Number.isFinite(v))return; state[id]=v;
+      container.querySelectorAll(`[data-id="${id}"],[data-num="${id}"]`).forEach(el=>{if(el!==e.target)el.value=v;});
+      onChange();
+    }));
+  }
+  function syncControls(container, state){
+    container.querySelectorAll("input").forEach(el=>{ const id=el.dataset.id||el.dataset.num; if(id in state)el.value=state[id]; });
+  }
+
+  /* ---- CM setup ---- */
+  const selCM=document.getElementById("choqueCM");
+  selCM.innerHTML=Object.entries(CHOQUES).map(([k,[l]])=>`<option value="${k}">${l}</option>`).join("");
+  selCM.addEventListener("change",renderCM);
+  buildControls(document.getElementById("controlesCM"),GRUPOS,pCM,renderCM);
+  document.getElementById("restaurarCM").addEventListener("click",()=>{pCM={...PADROES};selCM.value="nenhum";buildControls(document.getElementById("controlesCM"),GRUPOS,pCM,renderCM);renderCM();});
+
+  /* ---- Solow setup ---- */
+  buildControls(document.getElementById("controlesSol"),SOL_CTRL,pSol,renderSol);
+  document.getElementById("goldenBtn").addEventListener("click",()=>{pSol.s=pSol.alpha;syncControls(document.getElementById("controlesSol"),pSol);renderSol();});
+  document.getElementById("restaurarSol").addEventListener("click",()=>{pSol={...SOL_PAD};buildControls(document.getElementById("controlesSol"),SOL_CTRL,pSol,renderSol);renderSol();});
+
+  /* ---- Choques setup ---- */
+  function linkPair(rangeId,numId,key,scale){ // scale: valor mostrado = state*scale? usamos direto
+    const r=document.getElementById(rangeId),num=document.getElementById(numId);
+    const set=v=>{ pCh[key]=scale?v/scale:v; r.value=v; num.value=v; renderCh(); };
+    r.addEventListener("input",e=>set(Number(e.target.value)));
+    num.addEventListener("input",e=>set(Number(e.target.value)));
+  }
+  linkPair("Mmul","MmulN","Mmul",1);
+  linkPair("mu","muN","mu",100);       // slider em % -> fração
+  linkPair("accel","accelN","accel",100); // slider em % -> fração
+  linkPair("eta","etaN","eta",1);
+  linkPair("meses","mesesN","meses",1);
+  document.querySelectorAll("[data-mmul]").forEach(b=>b.addEventListener("click",()=>{
+    const v=Number(b.dataset.mmul); pCh.Mmul=v; document.getElementById("Mmul").value=v; document.getElementById("MmulN").value=v; renderCh();
+  }));
+  document.getElementById("hyperPresets").innerHTML=HIPER.map(h=>`<button class="hyper" data-hy="${h[1]}">${h[0]}</button>`).join("");
+  document.querySelectorAll("[data-hy]").forEach(b=>b.addEventListener("click",()=>{
+    const h=HIPER.find(x=>x[1]===b.dataset.hy);
+    // h[2] = crescimento mensal ilustrativo da moeda (fração, escalado p/ caber na simulação)
+    pCh.mu=h[2]; pCh.eta=Math.min(8,pCh.eta); pCh.meses=Math.max(18,pCh.meses);
+    document.getElementById("mu").value=(h[2]*100).toFixed(0); document.getElementById("muN").value=(h[2]*100).toFixed(0);
+    document.getElementById("meses").value=pCh.meses; document.getElementById("mesesN").value=pCh.meses;
+    document.getElementById("hyperInfo").dataset.note=h[3];
+    renderCh();
+    document.getElementById("hyperInfo").innerHTML+=`<br><br><strong>${h[0]}:</strong> ${h[3]} (a simulação usa μ ilustrativo — a realidade foi ainda mais violenta).`;
+  }));
+  document.getElementById("restaurarCh").addEventListener("click",()=>{
+    pCh={Mmul:5,mu:0.50,accel:0.15,eta:4,meses:24};
+    document.getElementById("Mmul").value=5;document.getElementById("MmulN").value=5;
+    document.getElementById("mu").value=50;document.getElementById("muN").value=50;
+    document.getElementById("accel").value=15;document.getElementById("accelN").value=15;
+    document.getElementById("eta").value=4;document.getElementById("etaN").value=4;
+    document.getElementById("meses").value=24;document.getElementById("mesesN").value=24;
+    renderCh();
+  });
+
+  /* ---- Teoria ---- */
+  document.getElementById("teoriaBody").innerHTML=TEORIA;
+
+  /* ---- Tabs ---- */
+  const rendered={cm:false,lp:false,ch:false,teoria:true};
+  document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tabpane").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); const tab=b.dataset.tab;
+    document.getElementById("pane-"+tab).classList.add("active");
+    if(tab==="cm"&&!rendered.cm){renderCM();rendered.cm=true;}
+    if(tab==="lp"&&!rendered.lp){renderSol();rendered.lp=true;}
+    if(tab==="ch"&&!rendered.ch){renderCh();rendered.ch=true;}
+  }));
+  renderCM(); rendered.cm=true;
+
+  /* ---- self-check (roda no console, não afeta a UI) ---- */
+  (function selfCheck(){
+    const p={s:0.3,n:0.01,g:0.02,delta:0.05,alpha:0.33,A0:1,k0:1};
+    const ks=solKstar(p);
+    console.assert(Math.abs(solF(ks,p)*p.s-solBreak(p)*ks)<1e-9,"Solow k* deve zerar k̇");
+    console.assert(Math.abs(solKgold({...p,s:p.alpha})-solKstar({...p,s:p.alpha}))<1e-9,"na regra de ouro s=α: k* = k_ouro");
+    const c=simCagan(0.5,0.15,4,24);
+    console.assert(c.P[24]>c.P[1],"Cagan: preços devem crescer");
+    console.assert(c.P.every((v,i)=>i===0||v>=c.P[i-1]),"Cagan: nível de preços deve ser monótono");
+  })();
+  </script>
+</body>
+</html>
