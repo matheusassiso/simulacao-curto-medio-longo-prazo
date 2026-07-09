@@ -1,6 +1,22 @@
 # Simulação de Curto, Médio e Longo Prazo — IS-LM-BP, DA-OA e Solow
 
+### ▶ Abrir agora: **https://matheusassiso.github.io/simulacao-curto-medio-longo-prazo/**
+
+Não precisa baixar nada, não precisa instalar nada. Clica no link acima e usa direto no navegador (funciona no celular também).
+
+---
+
 Dashboard **offline, de arquivo único** (`index.html`) para o estudante brincar com os três horizontes da macroeconomia. Sem instalar Python, R, Node ou pacote estatístico — abre no navegador e todos os cálculos rodam em JavaScript puro com gráficos SVG.
+
+## Como funciona, em 30 segundos
+
+A macroeconomia responde à mesma pergunta — "o que acontece com o produto, os juros e os preços quando algo muda?" — de três jeitos, conforme o **prazo**:
+
+- **Curto prazo:** os preços estão "grudados" (o dono do mercado não remarca tudo toda hora). Aí quem manda no produto é a **demanda** — política fiscal e monetária mexem na economia de verdade. É o mundo do **IS-LM-BP**.
+- **Médio prazo:** os preços e as expectativas vão se ajustando. O produto **volta pro nível natural** por conta própria e o que sobra do estímulo vira **inflação**. É o **DA-OA / Phillips**.
+- **Longo prazo:** o próprio nível natural cresce — mas só pelo que constrói capacidade: **poupança, tecnologia e população**. Imprimir dinheiro aqui não cria riqueza, cria inflação. É o **Solow**.
+
+Cada aba do site é um desses prazos. Você mexe nos controles (sliders) à esquerda e os gráficos recalculam na hora.
 
 ## O que tem
 
@@ -28,11 +44,20 @@ Dashboard **offline, de arquivo único** (`index.html`) para o estudante brincar
 
 ## Como usar
 
-Abra `index.html` no navegador. Só isso. Copie a pasta para qualquer computador — funciona sem internet.
+**Do jeito fácil:** abra **https://matheusassiso.github.io/simulacao-curto-medio-longo-prazo/** e pronto.
 
-## Publicar no GitHub Pages
+**Offline (sem internet):** baixe o repositório (botão verde *Code → Download ZIP*), descompacte e dê dois cliques em `index.html`. Pode copiar a pasta pra qualquer computador ou pen drive — não depende de internet nem de instalar nada.
 
-`push` na branch `main`; o workflow em `.github/workflows/pages.yml` publica a pasta inteira. Em *Settings → Pages*, defina a origem como **GitHub Actions**.
+## Roteiro rápido pra brincar
+
+1. **Aba "Curto e Médio prazo"** — no topo escolha um choque (ex.: *Expansão monetária, M×1,35*). Veja a curva LM deslocar no IS-LM e, logo abaixo, a trajetória no tempo: o produto sobe na hora e depois **volta pro natural** enquanto os preços sobem.
+2. **Aba "Longo prazo — Solow"** — clique em **"Ajustar para a regra de ouro (s = α)"**. Esse é o nível de poupança que dá o **maior consumo possível** no longo prazo. Aumente a poupança além disso e veja o consumo *cair* — é a ineficiência dinâmica (poupar demais empobrece).
+3. **Aba "Laboratório de choques"** — clique em **"quintuplicar+ (×100)"** ou num episódio histórico (*Zimbábue*, *Hungria*) e veja a inflação explodir. É a prova visual de que imprimir dinheiro não cria riqueza real.
+4. **Aba "Teoria e deduções"** — a matemática completa por trás de tudo: dedução do Solow, controle ótimo (Hamiltoniano, Euler), programação dinâmica (Bellman/HJB) e as regras de ouro.
+
+## Publicar / atualizar (pra você que mantém o projeto)
+
+Já está tudo configurado. Qualquer `git push` na branch `main` **republica o site sozinho** (workflow em `.github/workflows/pages.yml`). Não precisa mexer em nada.
 
 ## Modelos, em uma linha cada
 
